@@ -7,7 +7,9 @@ namespace Pagemachine\MailCssInliner\Tests\Functional;
  * This file is part of the Pagemachine Mail CSS Inliner project.
  */
 
+use TYPO3\CMS\Core\Mail\FluidEmail;
 use TYPO3\CMS\Core\Mail\MailMessage;
+use TYPO3\CMS\Core\Mail\Mailer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -30,6 +32,17 @@ final class SymfonyMailMessageTest extends AbstractMailTest
         if (is_subclass_of(MailMessage::class, \Swift_Message::class)) {
             $this->markTestSkipped('Not using Symfony Mail');
         }
+
+        $this->configurationToUseInTestInstance = array_merge_recursive(
+            $this->configurationToUseInTestInstance,
+            [
+                'MAIL' => [
+                    'templateRootPaths' => [
+                        100 => 'EXT:mail_css_inliner/Tests/Functional/Fixtures/Templates/Email/',
+                    ],
+                ],
+            ]
+        );
 
         parent::setUp();
     }
@@ -57,9 +70,31 @@ HTML
         ;
         GeneralUtility::makeInstance(MailMessage::class)
             ->subject('Mail CSS Inliner Test')
+            ->from('from@example.org')
             ->to('test@example.org')
             ->html($htmlBody)
             ->send();
+
+        $expectedSubstring = <<<HTML
+<p style="color: red;">Test</p>
+HTML
+        ;
+
+        $this->assertLastMessageBodyContains($expectedSubstring);
+    }
+
+    /**
+     * @test
+     */
+    public function worksWithFluidEmail(): void
+    {
+        $mail = GeneralUtility::makeInstance(FluidEmail::class)
+            ->subject('Mail CSS Inliner Test')
+            ->from('from@example.org')
+            ->to('test@example.org')
+            ->setTemplate('MailCssInlinerTest');
+        GeneralUtility::makeInstance(Mailer::class)
+            ->send($mail);
 
         $expectedSubstring = <<<HTML
 <p style="color: red;">Test</p>
