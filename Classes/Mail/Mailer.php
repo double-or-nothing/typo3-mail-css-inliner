@@ -10,8 +10,9 @@ namespace Pagemachine\MailCssInliner\Mail;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
-use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
+use TYPO3\CMS\Core\Mail\FluidEmail;
 use TYPO3\CMS\Core\Mail\Mailer as CoreMailer;
+use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
 final class Mailer extends CoreMailer
 {
@@ -20,6 +21,10 @@ final class Mailer extends CoreMailer
      */
     public function send(RawMessage $message, Envelope $envelope = null): void
     {
+        if ($message instanceof FluidEmail) {
+            $message->getBody(); // Trigger rendering of templated body
+        }
+
         if ($message instanceof Email && !empty($message->getHtmlBody())) {
             $converter = new CssToInlineStyles();
             $message->html($converter->convert($message->getHtmlBody()));
